@@ -81,7 +81,7 @@ With this level of class imbalance, accuracy is misleading. This project optimiz
 
 | Layer | Tools |
 |---|---|
-| Language | Python 3.11 |
+| Language | Python 3.11, TypeScript |
 | Data handling | pandas, numpy |
 | Imbalance handling | imbalanced-learn (SMOTE, ADASYN) |
 | Modeling | scikit-learn, XGBoost, LightGBM |
@@ -95,7 +95,7 @@ With this level of class imbalance, accuracy is misleading. This project optimiz
 | CI/CD | GitHub Actions |
 | Monitoring/drift detection | Evidently AI |
 | Deployment | Render / AWS / GCP (free-tier) |
-| Demo frontend | Streamlit |
+| Demo frontend | React (Vite, TypeScript, TailwindCSS) |
 
 ---
 
@@ -120,6 +120,11 @@ fraud-detection-system/
 ├── api/
 │   ├── main.py              # FastAPI app
 │   └── schemas.py           # Pydantic input/output models
+├── frontend/                # React Dashboard client
+│   ├── src/
+│   │   ├── FraudDashboard.tsx
+│   │   └── index.css
+│   └── package.json
 ├── models/                  # saved model artifacts (DVC-tracked)
 ├── monitoring/
 │   └── drift_report.py
@@ -141,15 +146,12 @@ fraud-detection-system/
 A pure ML threshold is not enough. This project uses three complementary strategies, matching how production fraud platforms (e.g., Stripe Radar, card-network risk engines) are typically built:
 
 ### 1. Classification Threshold (`src/config.py`)
-The model's fraud probability is compared against a tunable threshold (default: `0.3104`). Lowering it increases recall (catches more fraud) at the cost of more false positives (larger analyst review queue). This trade-off is documented, not hidden — see [Results](#results).
+The model's fraud probability is compared against a tunable threshold (default: `0.3104` optimized for F2-score). Lowering it increases recall (catches more fraud) at the cost of more false positives (larger analyst review queue). This trade-off is documented, not hidden — see [Results](#results).
 
-### 2. Rule-Based Overrides (`src/rules.py`)
-Independent of the ML score, rules trigger manual review or step-up authentication for known high-risk patterns, e.g.:
-- Transaction amount above a set threshold **and** an unfamiliar device
-- Multiple transactions in a short time window from the same card/device (velocity check, catches "card testing" fraud)
-- Unfamiliar merchant category combined with an unusually low transaction amount
-
-Rules exist specifically to catch fraud patterns the model scores as low-risk — see [Known Limitations](#known-limitations--edge-cases) for a documented example.
+### 2. Rule-Based Overrides
+Independent of the ML score, rules trigger manual review or step-up authentication for known high-risk patterns.
+*   **Rule 1: Escalation for high-amount transactions with moderate ML suspicion** (If amount > \$300.00 and ML fraud probability >= 10.0%, escalate to review).
+*   **Rule 2 & 3: Behavioral Velocity Checks** (If card receives > 3 transactions or spends > \$1,000 within a rolling 10-minute window, trigger velocity override). *Note: Currently disabled/commented out for research.*
 
 ### 3. Retraining on False Negatives
 Missed fraud cases are logged, reviewed, and used to retrain the model (`dvc repro`) with adjusted sample weights, so the model incrementally learns from what it previously missed.
@@ -158,21 +160,23 @@ Missed fraud cases are logged, reviewed, and used to retrain the model (`dvc rep
 
 ## Results
 
-> Fill in after running your experiments — this table is the centerpiece of the README.
+Below are the final evaluation metrics computed on the hold-out test set:
 
-| Model | Precision | Recall | F2-Score | PR-AUC |
-|---|---|---|---|---|
-| Logistic Regression (baseline) | | | | |
-| Random Forest | | | | |
-| XGBoost (tuned) | | | | |
-| LightGBM (tuned) | | | | |
-| Isolation Forest (unsupervised) | | | | |
-| Autoencoder (unsupervised) | | | | |
-| **Final model (chosen)** | | | | |
+| Model | Precision | Recall | F2-Score | PR-AUC | Cost ($) |
+|---|---|---|---|---|---|
+| Logistic Regression (baseline) | 48.78% | 80.00% | 70.92% | 0.7595 | 8,130.00 |
+| **Random Forest (chosen best)** | **86.76%** | **78.67%** | **80.16%** | **0.8218** | **8,090.00** |
+| LightGBM | 90.48% | 76.00% | 78.51% | 0.8025 | 9,060.00 |
+| XGBoost | 89.06% | 76.00% | 78.30% | 0.7903 | 9,070.00 |
+| Autoencoder (PyTorch) | 12.31% | 10.67% | 10.96% | 0.1202 | 34,070.00 |
+| Isolation Forest | 7.24% | 52.00% | 23.24% | 0.0431 | 23,000.00 |
 
-**Threshold trade-off:** at threshold `0.3104`, precision = ___, recall = ___. Lowering to `0.10` increases recall to ___ but increases the analyst review queue by approximately ___%.
+**Threshold trade-off (Random Forest):**
+*   At threshold `0.3104`: precision = `86.76%`, recall = `78.67%` (9 false positives out of 68 flagged).
+*   Lowering to `0.10`: increases recall to `85.33%` but increases the analyst review queue by **`158.8%`** (112 false positives out of 176 flagged).
 
-**Estimated business impact:** based on an assumed average fraud loss of \$___ per missed case and \$___ analyst review cost per false positive, the final system is estimated to save approximately \$___ compared to the baseline.
+**Estimated business impact:**
+Based on an assumed average fraud loss of **\$500.00** per missed case and **\$10.00** analyst review cost per false positive, the final system (Random Forest at threshold `0.3104`) is estimated to minimize total business costs to **\$8,090.00** compared to the baseline Logistic Regression (\$8,130.00) on our test set.
 
 ---
 
@@ -180,10 +184,9 @@ Missed fraud cases are logged, reviewed, and used to retrain the model (`dvc rep
 
 Documented honestly, because this is where the real engineering thinking shows:
 
-- **Low-amount fraud blind spot:** a transaction under the rule engine's amount threshold (e.g., under $300) that also scores below the ML threshold (e.g., 11% vs. a 31% cutoff) will not be flagged by either layer. This is a known pattern for "card testing" fraud, where small transactions are used to validate a stolen card before a larger purchase. Mitigation: a velocity-based rule (multiple small transactions in a short window) was added specifically to close this gap.
-- **Anonymized features (V1–V28):** the dataset's PCA-transformed features limit literal business interpretation of SHAP explanations — explanations are framed around relative importance and consistency rather than named business meaning.
-- **Static dataset:** the model is trained on a fixed historical dataset and does not reflect real-time evolving fraud patterns; in production this would require continuous retraining and monitoring.
-- **Free-tier deployment constraints:** the deployed API may experience cold-start latency on free hosting tiers.
+*   **Low-amount fraud blind spot:** a transaction under the rule engine's amount threshold (e.g., under \$300) that also scores below the ML threshold (e.g., 11% vs. a 31% cutoff) will not be flagged by either layer. This is a known pattern for "card testing" fraud, where small transactions are used to validate a stolen card before a larger purchase. *Mitigation: a behavioral velocity rule (multiple small transactions in a short window) has been designed and tested.*
+*   **Anonymized features (V1–V28):** the dataset's PCA-transformed features limit literal business interpretation of SHAP explanations — explanations are framed around relative importance and consistency rather than named business meaning.
+*   **Static dataset:** the model is trained on a fixed historical dataset and does not reflect real-time evolving fraud patterns; in production this would require continuous retraining and monitoring.
 
 ---
 
@@ -200,7 +203,7 @@ pip install -r requirements.txt
 
 ### Reproduce the pipeline
 ```bash
-dvc repro
+venv/bin/dvc repro
 ```
 
 ### Run the API locally
@@ -208,30 +211,36 @@ dvc repro
 uvicorn api.main:app --reload
 ```
 
-### Run with Docker
+### Run the Frontend client locally
 ```bash
-docker build -t fraud-detection-api .
-docker run -p 8000:8000 fraud-detection-api
+cd frontend
+npm install
+npm run dev
 ```
 
 ### Example API request
 ```bash
 curl -X POST "http://localhost:8000/predict" \
   -H "Content-Type: application/json" \
-  -d '{"Time": 12345, "V1": -1.23, "V2": 0.45, "...": "...", "Amount": 149.62}'
+  -d '{"Time": 152802, "V1": -1.91, "V2": -0.49, "Amount": 357.95, "card_id": "card_demo"}'
 ```
 
 ### Example API response
 ```json
 {
-  "fraud_probability": 0.11,
-  "flagged_by_model": false,
-  "flagged_by_rules": false,
-  "final_decision": "approved",
-  "shap_top_features": [
-    {"feature": "V14", "contribution": -0.32},
-    {"feature": "V4", "contribution": 0.21}
-  ]
+  "fraud_probability": 0.1156,
+  "is_fraud": true,
+  "threshold": 0.3104,
+  "shap_values": {
+    "V23": 0.1233,
+    "V24": -0.1233
+  },
+  "top_risk_factors": [
+    "V23 (+0.1233)",
+    "V28 (+0.0886)"
+  ],
+  "rule_triggered": true,
+  "rule_reasons": ["High Amount (> $300.00) with elevated ML risk (> 10.0%)"]
 }
 ```
 
@@ -240,16 +249,13 @@ curl -X POST "http://localhost:8000/predict" \
 pytest tests/
 ```
 
-### Live demo
-[Add deployed API/Streamlit link here once deployed]
-
 ---
 
 ## Roadmap / Future Work
 
-- [ ] Add velocity-based and merchant-category-based rules to close the low-amount fraud gap
+- [ ] Enable/Enable-by-default the velocity-based rules and add geo-location coordinates
 - [ ] Segment-specific thresholds (e.g., new accounts vs. established accounts)
-- [ ] Streamlit dashboard for live drift monitoring
+- [ ] Streamlit/React dashboard for live drift monitoring
 - [ ] A/B testing framework for comparing model versions in "shadow mode" before full rollout
 - [ ] Expand test coverage across `src/`
 
@@ -265,7 +271,4 @@ pytest tests/
 ---
 
 ## License
-[MIT / your choice]
-
-## Contact
-[Your name / LinkedIn / email]
+MIT License
