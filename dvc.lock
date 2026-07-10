@@ -1,0 +1,87 @@
+schema: '2.0'
+stages:
+  prepare:
+    cmd: python -m src.data_prep
+    deps:
+    - path: data/raw/creditcard.csv
+      hash: md5
+      md5: e90efcb83d69faf99fcab8b0255024de
+      size: 150828752
+    - path: src/config.py
+      hash: md5
+      md5: e235e7fff55a514e570936c016d0f23d
+      size: 4599
+    - path: src/data_prep.py
+      hash: md5
+      md5: 11bec3b6f97961e4737d97c8dba1c741
+      size: 8277
+    outs:
+    - path: data/processed/test.csv
+      hash: md5
+      md5: a5808ae2a7db59f629a68a29008fe9e1
+      size: 32260257
+    - path: data/processed/train.csv
+      hash: md5
+      md5: 2b7bb7d5749a6e2ff1aaf98fc772d544
+      size: 128718070
+  train:
+    cmd: python -m src.train
+    deps:
+    - path: data/processed/test.csv
+      hash: md5
+      md5: a5808ae2a7db59f629a68a29008fe9e1
+      size: 32260257
+    - path: data/processed/train.csv
+      hash: md5
+      md5: 2b7bb7d5749a6e2ff1aaf98fc772d544
+      size: 128718070
+    - path: src/config.py
+      hash: md5
+      md5: e235e7fff55a514e570936c016d0f23d
+      size: 4599
+    - path: src/evaluate.py
+      hash: md5
+      md5: 8703f1078bb119dd35a49ea32ffc0945
+      size: 13159
+    - path: src/train.py
+      hash: md5
+      md5: 1986dda453896afdcd38db78b98d4bd2
+      size: 19307
+    outs:
+    - path: models/best_model.pkl
+      hash: md5
+      md5: 97fcc6227d600e54188ca20d7b19c60c
+      size: 7197266
+    - path: models/best_threshold.json
+      hash: md5
+      md5: 9bab2242eafa51498a59045b4eb36fa6
+      size: 71
+    - path: models/leaderboard.csv
+      hash: md5
+      md5: 2ea5d5f7a1358c573fe423ad8e7691c0
+      size: 675
+    - path: plots/
+      hash: md5
+      md5: 476161993783d6e34decf95e1979e582.dir
+      size: 765028
+      nfiles: 18
+  monitor:
+    cmd: python -m monitoring.drift_report
+    deps:
+    - path: data/processed/test.csv
+      hash: md5
+      md5: a5808ae2a7db59f629a68a29008fe9e1
+      size: 32260257
+    - path: data/processed/train.csv
+      hash: md5
+      md5: 2b7bb7d5749a6e2ff1aaf98fc772d544
+      size: 128718070
+    - path: monitoring/drift_report.py
+      hash: md5
+      md5: b688abd848c73999ed7ab865901ad221
+      size: 4304
+    outs:
+    - path: monitoring/reports/data_drift_report.html
+      hash: md5
+      md5: 54b930a2c05e8e8ac514725bc3999b0e
+      size: 4786841

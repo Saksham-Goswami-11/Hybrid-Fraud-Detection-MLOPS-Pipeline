@@ -1,0 +1,36 @@
+stages:
+  prepare:
+    cmd: python -m src.data_prep
+    deps:
+      - data/raw/creditcard.csv
+      - src/data_prep.py
+      - src/config.py
+    outs:
+      - data/processed/train.csv
+      - data/processed/test.csv
+
+  train:
+    cmd: python -m src.train
+    deps:
+      - data/processed/train.csv
+      - data/processed/test.csv
+      - src/train.py
+      - src/evaluate.py
+      - src/config.py
+    outs:
+      - models/best_model.pkl
+      - models/best_threshold.json
+      - models/leaderboard.csv
+    plots:
+      - plots/:
+          cache: false
+
+  monitor:
+    cmd: python monitoring/drift_report.py
+    deps:
+      - data/processed/train.csv
+      - data/processed/test.csv
+      - monitoring/drift_report.py
+    outs:
+      - monitoring/reports/data_drift_report.html:
+          cache: false

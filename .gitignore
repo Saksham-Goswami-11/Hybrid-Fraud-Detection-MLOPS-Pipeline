@@ -1,0 +1,55 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Data (DVC-tracked)
+data/raw/
+data/processed/
+
+# Model artifacts (DVC-tracked)
+models/*.pkl
+models/*.pt
+models/*.joblib
+
+# MLflow
+mlruns/
+mlartifacts/
+
+# DVC
+/tmp/
+.dvc/cache/
+.dvc/tmp/
+
+# Environment variables
+.env
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Distribution
+dist/
+build/
+*.egg-info/
+
+# Coverage
+.coverage
+htmlcov/
+
+# Monitoring reports
+monitoring/reports/
+
+# OS
+Thumbs.db
