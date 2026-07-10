@@ -10,8 +10,9 @@ import pickle
 from functools import lru_cache
 
 import numpy as np
+import pandas as pd
 
-from src.config import BEST_MODEL_PATH, BEST_THRESHOLD_PATH, ENGINEERED_FEATURES
+from src.config import BEST_MODEL_PATH, BEST_THRESHOLD_PATH, ENGINEERED_FEATURES, TEST_DATA_FILE
 from src.explain import get_shap_explainer
 from src.utils import get_logger
 
@@ -89,3 +90,18 @@ def prepare_features(transaction_dict: dict) -> np.ndarray:
             features.append(transaction_dict[feat])
 
     return np.array(features, dtype=np.float64)
+
+
+@lru_cache(maxsize=1)
+def load_test_df():
+    """
+    Load the test dataset from disk (cached singleton).
+
+    Returns:
+        pandas.DataFrame or None: Loaded test set DataFrame, or None if file not found.
+    """
+    if not TEST_DATA_FILE.exists():
+        logger.warning(f"test.csv not found at {TEST_DATA_FILE}")
+        return None
+    logger.info(f"Loading test set from {TEST_DATA_FILE}...")
+    return pd.read_csv(TEST_DATA_FILE)

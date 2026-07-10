@@ -47,6 +47,7 @@ class TransactionInput(BaseModel):
     V28: float = Field(..., description="PCA component V28")
     Amount: float = Field(..., ge=0, description="Transaction amount in USD")
     Time: float = Field(..., ge=0, description="Seconds elapsed since first transaction")
+    card_id: str = Field("card_default_123", description="Credit card identifier for velocity tracking")
 
     model_config = {
         "json_schema_extra": {
@@ -101,6 +102,12 @@ class PredictionResponse(BaseModel):
     )
     top_risk_factors: list[str] = Field(
         ..., description="Top 5 features driving the fraud prediction"
+    )
+    rule_triggered: bool = Field(
+        False, description="Whether a deterministic rule overrode the model's output"
+    )
+    rule_reasons: list[str] = Field(
+        [], description="Reasons for rule override (if any)"
     )
 
 

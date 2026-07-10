@@ -9,13 +9,21 @@ Endpoints:
 """
 
 import time
+import threading
+from collections import defaultdict
 from datetime import datetime, timezone
 
 import numpy as np
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.dependencies import load_explainer, load_model, prepare_features
+# In-memory sliding window cache for behavioral velocity checks
+# Stores mapping: card_id -> list of {"timestamp": float, "amount": float}
+VELOCITY_CACHE = defaultdict(list)
+VELOCITY_LOCK = threading.Lock()
+VELOCITY_WINDOW_SECONDS = 600  # 10 minutes sliding window
+
+from api.dependencies import load_explainer, load_model, prepare_features, load_test_df
 from api.schemas import (
     BatchPredictionRequest,
     BatchPredictionResponse,
@@ -91,6 +99,47 @@ async def startup_event():
 # ──────────────────────────────────────────────
 # Endpoints
 # ──────────────────────────────────────────────
+def check_velocity_and_record(card_id: str, amount: float) -> tuple[bool, list[str]]:
+    """
+    Check if a transaction violates the card velocity checks,
+    and record the current transaction in history.
+    """
+    now = time.time()
+    triggered = False
+    reasons = []
+
+    with VELOCITY_LOCK:
+        # Get history and filter out old transactions
+        history = VELOCITY_CACHE[card_id]
+        active_history = [
+            tx for tx in history
+            if now - tx["timestamp"] <= VELOCITY_WINDOW_SECONDS
+        ]
+
+        # Rule 2: Exceeded 3 transactions in 10 minutes sliding window
+        if len(active_history) >= 3:
+            triggered = True
+            reasons.append(
+                f"Velocity Alert: Card exceeded 3 transactions in 10 minutes "
+                f"({len(active_history) + 1} attempts detected)"
+            )
+
+        # Rule 3: Exceeded $1,000 spending in 10 minutes sliding window
+        total_spent = sum(tx["amount"] for tx in active_history)
+        if total_spent + amount > 1000.0:
+            triggered = True
+            reasons.append(
+                f"Velocity Alert: Card spending exceeded $1,000 in 10 minutes "
+                f"(Total: ${total_spent + amount:.2f})"
+            )
+
+        # Record this transaction in history
+        active_history.append({"timestamp": now, "amount": amount})
+        VELOCITY_CACHE[card_id] = active_history
+
+    return triggered, reasons
+
+
 @app.post("/predict", response_model=PredictionResponse)
 async def predict(transaction: TransactionInput):
     """
@@ -113,6 +162,23 @@ async def predict(transaction: TransactionInput):
     fraud_prob = float(model.predict_proba(features_2d)[0, 1])
     is_fraud = fraud_prob >= threshold
 
+    # Rule-based overrides (Hybrid Risk System guardrails)
+    rule_triggered = False
+    rule_reasons = []
+
+    # Rule 1: Escalation for high-amount transactions with moderate ML suspicion
+    if transaction.Amount > 300.0 and fraud_prob >= 0.10:
+        rule_triggered = True
+        rule_reasons.append("High Amount (> $300.00) with elevated ML risk (> 10.0%)")
+        is_fraud = True
+
+    # Rule 2 & 3: Behavioral Velocity Checks (Disabled for now)
+    # v_triggered, v_reasons = check_velocity_and_record(transaction.card_id, transaction.Amount)
+    # if v_triggered:
+    #     rule_triggered = True
+    #     rule_reasons.extend(v_reasons)
+    #     is_fraud = True
+
     # SHAP explanation
     shap_response = shap_values_to_api_response(
         explainer, features, feature_names=ENGINEERED_FEATURES
@@ -124,6 +190,8 @@ async def predict(transaction: TransactionInput):
         threshold=threshold,
         shap_values=shap_response["shap_values"],
         top_risk_factors=shap_response["top_risk_factors"],
+        rule_triggered=rule_triggered,
+        rule_reasons=rule_reasons,
     )
 
 
@@ -151,6 +219,20 @@ async def predict_batch(request: BatchPredictionRequest):
         fraud_prob = float(model.predict_proba(features_2d)[0, 1])
         is_fraud = fraud_prob >= threshold
 
+        rule_triggered = False
+        rule_reasons = []
+
+        if transaction.Amount > 300.0 and fraud_prob >= 0.10:
+            rule_triggered = True
+            rule_reasons.append("High Amount (> $300.00) with elevated ML risk (> 10.0%)")
+            is_fraud = True
+
+        # v_triggered, v_reasons = check_velocity_and_record(transaction.card_id, transaction.Amount)
+        # if v_triggered:
+        #     rule_triggered = True
+        #     rule_reasons.extend(v_reasons)
+        #     is_fraud = True
+
         if is_fraud:
             fraud_count += 1
 
@@ -165,6 +247,8 @@ async def predict_batch(request: BatchPredictionRequest):
                 threshold=threshold,
                 shap_values=shap_response["shap_values"],
                 top_risk_factors=shap_response["top_risk_factors"],
+                rule_triggered=rule_triggered,
+                rule_reasons=rule_reasons,
             )
         )
 
@@ -210,3 +294,54 @@ async def model_info():
         features=ENGINEERED_FEATURES,
         n_features=len(ENGINEERED_FEATURES),
     )
+
+
+@app.get("/sample-transactions")
+async def sample_transactions():
+    """
+    Return a list of predefined sample transactions from the test set.
+    The indices correspond to 1-based spreadsheet row numbers (Row 1 is the header).
+    """
+    return [
+        {"index": 2, "label": "Legitimate Transaction #1 ($50.00) — Row 2"},
+        {"index": 3, "label": "Legitimate Transaction #2 ($14.95) — Row 3"},
+        {"index": 4, "label": "Legitimate Transaction #3 ($7.70) — Row 4"},
+        {"index": 5, "label": "Legitimate Transaction #4 ($6.99) — Row 5"},
+        {"index": 1870, "label": "Fraudulent Transaction #1 ($1.18) — Row 1870"},
+        {"index": 1884, "label": "Fraudulent Transaction #2 ($2.22) — Row 1884"},
+        {"index": 2235, "label": "Fraudulent Transaction #3 ($0.77) — Row 2235"},
+        {"index": 2635, "label": "Fraudulent Transaction #4 ($94.82) — Row 2635"},
+        {"index": 4135, "label": "Fraudulent Transaction #5 ($8.00) — Row 4135"},
+        {"index": 6861, "label": "Fraudulent Transaction #6 ($0.00) — Row 6861"},
+    ]
+
+
+@app.get("/sample-transaction/{row_number}")
+async def sample_transaction(row_number: int):
+    """
+    Retrieve features for a given spreadsheet row number from test.csv.
+    Row 1 is the header, so data starts at Row 2.
+    Strips 'Class' (ground truth) and engineered columns.
+    """
+    df = load_test_df()
+    if df is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Test dataset not loaded on server. Run preparation pipeline first.",
+        )
+
+    if row_number < 2 or row_number > len(df) + 1:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid row number. Must be between 2 and {len(df) + 1} (Row 1 is the header row).",
+        )
+
+    # Map spreadsheet row number (1-based, row 1 is header) to pandas 0-based index
+    pandas_index = row_number - 2
+    row = df.iloc[pandas_index].to_dict()
+    
+    # Strip ground truth class and pre-engineered columns
+    for col in ["Class", "log_amount", "hour_of_day"]:
+        row.pop(col, None)
+
+    return row

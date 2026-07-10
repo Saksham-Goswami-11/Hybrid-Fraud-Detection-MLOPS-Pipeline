@@ -13,7 +13,7 @@ import time
 import numpy as np
 import pytest
 from fastapi.testclient import TestClient
-from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
 
 from src.config import BEST_MODEL_PATH, BEST_THRESHOLD_PATH, MODELS_DIR
 
@@ -31,7 +31,7 @@ def mock_model():
     y = np.zeros(100, dtype=int)
     y[:5] = 1
 
-    model = LogisticRegression(max_iter=200, random_state=42)
+    model = RandomForestClassifier(n_estimators=10, max_depth=3, random_state=42)
     model.fit(X, y)
 
     # Save model
@@ -41,7 +41,7 @@ def mock_model():
 
     # Save threshold
     with open(BEST_THRESHOLD_PATH, "w") as f:
-        json.dump({"threshold": 0.5, "model_name": "test_logistic_regression"}, f)
+        json.dump({"threshold": 0.5, "model_name": "test_random_forest"}, f)
 
     yield model
 
@@ -144,6 +144,39 @@ class TestPredictEndpoint:
         assert response.status_code == 200
         # Allow generous margin for test environments
         assert latency_ms < 2000, f"Prediction took {latency_ms:.0f}ms (limit: 2000ms)"
+
+    @pytest.mark.skip(reason="Velocity checks are disabled for now")
+    def test_predict_velocity_over_limit_triggers_override(self, client, valid_transaction):
+        """API should trigger rule override on the 4th consecutive request for a card."""
+        valid_transaction["card_id"] = "test_card_limit_pytest"
+        
+        # Hitting 3 times should be normal
+        for _ in range(3):
+            response = client.post("/predict", json=valid_transaction)
+            assert response.status_code == 200
+            data = response.json()
+            assert data["rule_triggered"] is False
+            
+        # 4th time should trigger velocity count alert override
+        response = client.post("/predict", json=valid_transaction)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["rule_triggered"] is True
+        assert data["is_fraud"] is True
+        assert any("exceeded 3 transactions" in r for r in data["rule_reasons"])
+
+    @pytest.mark.skip(reason="Velocity checks are disabled for now")
+    def test_predict_velocity_spend_limit_triggers_override(self, client, valid_transaction):
+        """API should trigger rule override immediately if single transaction is > $1000."""
+        valid_transaction["card_id"] = "test_card_spend_pytest"
+        valid_transaction["Amount"] = 1200.0
+        
+        response = client.post("/predict", json=valid_transaction)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["rule_triggered"] is True
+        assert data["is_fraud"] is True
+        assert any("spending exceeded $1,000" in r for r in data["rule_reasons"])
 
 
 class TestModelInfoEndpoint:

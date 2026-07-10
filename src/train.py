@@ -7,6 +7,11 @@ imbalance strategies, and logs experiments to MLflow.
 Can be run as a module: python -m src.train
 """
 
+import os
+
+# Fix macOS OpenMP crash — must be set BEFORE importing XGBoost/LightGBM/sklearn
+os.environ["OMP_NUM_THREADS"] = "1"
+
 import json
 import pickle
 
@@ -120,7 +125,7 @@ def train_random_forest(
         "max_depth": 15,
         "class_weight": "balanced",
         "random_state": RANDOM_SEED,
-        "n_jobs": -1,
+        "n_jobs": 1,
     }
     defaults.update(kwargs)
     model = RandomForestClassifier(**defaults)
@@ -141,7 +146,7 @@ def train_xgboost(
     scale_pos_weight = n_neg / n_pos if n_pos > 0 else 1.0
 
     defaults = {
-        "n_estimators": 300,
+        "n_estimators": 200,
         "max_depth": 6,
         "learning_rate": 0.1,
         "scale_pos_weight": scale_pos_weight,
@@ -149,8 +154,8 @@ def train_xgboost(
         "colsample_bytree": 0.8,
         "random_state": RANDOM_SEED,
         "eval_metric": "aucpr",
-        "use_label_encoder": False,
         "tree_method": "hist",
+        "n_jobs": 1,
     }
     defaults.update(kwargs)
     model = XGBClassifier(**defaults)
@@ -167,20 +172,18 @@ def train_lightgbm(
     import lightgbm as lgb
 
     logger.info("Training LightGBM...")
-    n_neg = (y_train == 0).sum()
-    n_pos = (y_train == 1).sum()
-    scale_pos_weight = n_neg / n_pos if n_pos > 0 else 1.0
 
     defaults = {
-        "n_estimators": 300,
+        "n_estimators": 200,
         "max_depth": 6,
         "learning_rate": 0.1,
-        "scale_pos_weight": scale_pos_weight,
+        "class_weight": "balanced",
         "subsample": 0.8,
         "colsample_bytree": 0.8,
         "random_state": RANDOM_SEED,
         "metric": "average_precision",
         "verbosity": -1,
+        "n_jobs": 1,
     }
     defaults.update(kwargs)
     model = lgb.LGBMClassifier(**defaults)
@@ -207,7 +210,7 @@ def train_isolation_forest(
         "n_estimators": 200,
         "contamination": contamination,
         "random_state": RANDOM_SEED,
-        "n_jobs": -1,
+        "n_jobs": 1,
     }
     defaults.update(kwargs)
     model = IsolationForest(**defaults)

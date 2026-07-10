@@ -16,8 +16,12 @@ env/
 .DS_Store
 
 # Data (DVC-tracked)
-data/raw/
-data/processed/
+/data/raw/*
+!/data/raw/.gitignore
+!/data/raw/*.dvc
+/data/processed/*
+!/data/processed/.gitignore
+!/data/processed/*.dvc
 
 # Model artifacts (DVC-tracked)
 models/*.pkl

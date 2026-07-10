@@ -26,7 +26,7 @@ stages:
           cache: false
 
   monitor:
-    cmd: python monitoring/drift_report.py
+    cmd: python -m monitoring.drift_report
     deps:
       - data/processed/train.csv
       - data/processed/test.csv

@@ -6,9 +6,9 @@ comparing reference (training) data against current (production) data.
 """
 
 import pandas as pd
-from evidently import ColumnMapping
-from evidently.report import Report
-from evidently.metric_preset import (
+from evidently.legacy.pipeline.column_mapping import ColumnMapping
+from evidently.legacy.report import Report
+from evidently.legacy.metric_preset import (
     DataDriftPreset,
     ClassificationPreset,
     TargetDriftPreset,
