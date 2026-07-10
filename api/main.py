@@ -110,10 +110,7 @@ def check_velocity_and_record(card_id: str, amount: float) -> tuple[bool, list[s
     with VELOCITY_LOCK:
         # Get history and filter out old transactions
         history = VELOCITY_CACHE[card_id]
-        active_history = [
-            tx for tx in history
-            if now - tx["timestamp"] <= VELOCITY_WINDOW_SECONDS
-        ]
+        active_history = [tx for tx in history if now - tx["timestamp"] <= VELOCITY_WINDOW_SECONDS]
 
         # Rule 2: Exceeded 3 transactions in 10 minutes sliding window
         if len(active_history) >= 3:

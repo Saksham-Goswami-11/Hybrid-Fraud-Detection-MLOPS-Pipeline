@@ -83,9 +83,7 @@ def apply_resampling(
         raise ValueError(f"Unknown resampling strategy: {strategy}")
 
     X_resampled, y_resampled = sampler.fit_resample(X_train, y_train)
-    logger.info(
-        f"  Resampling ({strategy}): {len(X_train):,} → {len(X_resampled):,} samples"
-    )
+    logger.info(f"  Resampling ({strategy}): {len(X_train):,} → {len(X_resampled):,} samples")
     return X_resampled, y_resampled
 
 
@@ -585,9 +583,7 @@ def run_pipeline() -> None:
     else:
         logger.info(f"  Best model ({best_name}) is unsupervised — saving best supervised instead")
         # Fall back to best supervised model
-        supervised_df = leaderboard_df[
-            leaderboard_df["Model"].isin(model_map.keys())
-        ]
+        supervised_df = leaderboard_df[leaderboard_df["Model"].isin(model_map.keys())]
         if not supervised_df.empty:
             fallback_name = supervised_df.iloc[0]["Model"]
             prob_map = {

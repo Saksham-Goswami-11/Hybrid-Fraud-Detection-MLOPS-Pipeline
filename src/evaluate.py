@@ -7,7 +7,6 @@ and MLflow logging — reused consistently across all model experiments.
 Can be run as a standalone evaluation: python -m src.evaluate
 """
 
-
 import matplotlib.pyplot as plt
 import mlflow
 import numpy as np
@@ -417,8 +416,6 @@ def full_evaluation(
 
 def print_classification_report(y_true: np.ndarray, y_pred: np.ndarray) -> str:
     """Print and return sklearn classification report."""
-    report = classification_report(
-        y_true, y_pred, target_names=["Legitimate", "Fraud"], digits=4
-    )
+    report = classification_report(y_true, y_pred, target_names=["Legitimate", "Fraud"], digits=4)
     logger.info(f"\n{report}")
     return report

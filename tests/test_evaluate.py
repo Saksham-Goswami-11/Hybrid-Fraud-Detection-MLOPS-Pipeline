@@ -20,10 +20,17 @@ class TestComputeMetrics:
         metrics = compute_metrics(y_true, y_pred, y_prob)
 
         expected_keys = {
-            "pr_auc", "roc_auc", "f1", "f2", "threshold",
-            "true_positives", "false_positives",
-            "true_negatives", "false_negatives",
-            "precision", "recall",
+            "pr_auc",
+            "roc_auc",
+            "f1",
+            "f2",
+            "threshold",
+            "true_positives",
+            "false_positives",
+            "true_negatives",
+            "false_negatives",
+            "precision",
+            "recall",
         }
         assert expected_keys.issubset(metrics.keys())
 

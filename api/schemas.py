@@ -5,7 +5,6 @@ Defines request and response models with validation
 for transaction scoring and health check endpoints.
 """
 
-
 from pydantic import BaseModel, Field
 
 
@@ -47,7 +46,9 @@ class TransactionInput(BaseModel):
     V28: float = Field(..., description="PCA component V28")
     Amount: float = Field(..., ge=0, description="Transaction amount in USD")
     Time: float = Field(..., ge=0, description="Seconds elapsed since first transaction")
-    card_id: str = Field("card_default_123", description="Credit card identifier for velocity tracking")
+    card_id: str = Field(
+        "card_default_123", description="Credit card identifier for velocity tracking"
+    )
 
     model_config = {
         "json_schema_extra": {
@@ -92,23 +93,17 @@ class TransactionInput(BaseModel):
 class PredictionResponse(BaseModel):
     """Response schema for a single transaction prediction."""
 
-    fraud_probability: float = Field(
-        ..., ge=0, le=1, description="Probability of fraud (0 to 1)"
-    )
+    fraud_probability: float = Field(..., ge=0, le=1, description="Probability of fraud (0 to 1)")
     is_fraud: bool = Field(..., description="Whether the transaction is flagged as fraud")
     threshold: float = Field(..., description="Decision threshold used")
-    shap_values: dict[str, float] = Field(
-        ..., description="SHAP contribution per feature"
-    )
+    shap_values: dict[str, float] = Field(..., description="SHAP contribution per feature")
     top_risk_factors: list[str] = Field(
         ..., description="Top 5 features driving the fraud prediction"
     )
     rule_triggered: bool = Field(
         False, description="Whether a deterministic rule overrode the model's output"
     )
-    rule_reasons: list[str] = Field(
-        [], description="Reasons for rule override (if any)"
-    )
+    rule_reasons: list[str] = Field([], description="Reasons for rule override (if any)")
 
 
 class BatchPredictionRequest(BaseModel):
