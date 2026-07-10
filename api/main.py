@@ -8,22 +8,15 @@ Endpoints:
     GET  /model/info    — Model metadata
 """
 
-import time
 import threading
+import time
 from collections import defaultdict
 from datetime import datetime, timezone
 
-import numpy as np
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-# In-memory sliding window cache for behavioral velocity checks
-# Stores mapping: card_id -> list of {"timestamp": float, "amount": float}
-VELOCITY_CACHE = defaultdict(list)
-VELOCITY_LOCK = threading.Lock()
-VELOCITY_WINDOW_SECONDS = 600  # 10 minutes sliding window
-
-from api.dependencies import load_explainer, load_model, prepare_features, load_test_df
+from api.dependencies import load_explainer, load_model, load_test_df, prepare_features
 from api.schemas import (
     BatchPredictionRequest,
     BatchPredictionResponse,
@@ -35,6 +28,12 @@ from api.schemas import (
 from src.config import ENGINEERED_FEATURES
 from src.explain import shap_values_to_api_response
 from src.utils import get_logger
+
+# In-memory sliding window cache for behavioral velocity checks
+# Stores mapping: card_id -> list of {"timestamp": float, "amount": float}
+VELOCITY_CACHE = defaultdict(list)
+VELOCITY_LOCK = threading.Lock()
+VELOCITY_WINDOW_SECONDS = 600  # 10 minutes sliding window
 
 logger = get_logger(__name__)
 
@@ -339,7 +338,7 @@ async def sample_transaction(row_number: int):
     # Map spreadsheet row number (1-based, row 1 is header) to pandas 0-based index
     pandas_index = row_number - 2
     row = df.iloc[pandas_index].to_dict()
-    
+
     # Strip ground truth class and pre-engineered columns
     for col in ["Class", "log_amount", "hour_of_day"]:
         row.pop(col, None)

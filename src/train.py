@@ -42,11 +42,9 @@ from src.config import (
     TRAIN_DATA_FILE,
 )
 from src.evaluate import (
-    compute_metrics,
     find_optimal_threshold,
     full_evaluation,
     log_to_mlflow,
-    print_classification_report,
 )
 from src.utils import get_logger, set_global_seed
 

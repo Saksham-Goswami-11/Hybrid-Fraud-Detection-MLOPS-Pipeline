@@ -6,20 +6,20 @@ comparing reference (training) data against current (production) data.
 """
 
 import pandas as pd
-from evidently.legacy.pipeline.column_mapping import ColumnMapping
-from evidently.legacy.report import Report
 from evidently.legacy.metric_preset import (
-    DataDriftPreset,
     ClassificationPreset,
+    DataDriftPreset,
     TargetDriftPreset,
 )
+from evidently.legacy.pipeline.column_mapping import ColumnMapping
+from evidently.legacy.report import Report
 
 from src.config import (
     ENGINEERED_FEATURES,
     MONITORING_DIR,
     TARGET_COL,
-    TRAIN_DATA_FILE,
     TEST_DATA_FILE,
+    TRAIN_DATA_FILE,
 )
 from src.utils import get_logger
 

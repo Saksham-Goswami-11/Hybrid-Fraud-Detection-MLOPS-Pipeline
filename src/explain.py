@@ -5,10 +5,9 @@ Generates global and local explanations for model predictions,
 and provides JSON-serializable output for the API.
 """
 
-import numpy as np
-import pandas as pd
-import shap
 import matplotlib.pyplot as plt
+import numpy as np
+import shap
 
 from src.config import ENGINEERED_FEATURES, PLOTS_DIR
 from src.utils import get_logger

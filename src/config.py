@@ -7,6 +7,8 @@ so they can be imported consistently across modules.
 
 from pathlib import Path
 
+import torch
+
 # ──────────────────────────────────────────────
 # Paths
 # ──────────────────────────────────────────────
@@ -79,7 +81,7 @@ API_PORT = 8000
 # ──────────────────────────────────────────────
 # Device (PyTorch — Apple Silicon MPS)
 # ──────────────────────────────────────────────
-import torch
+
 
 if torch.backends.mps.is_available():
     DEVICE = torch.device("mps")

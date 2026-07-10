@@ -7,7 +7,6 @@ and MLflow logging — reused consistently across all model experiments.
 Can be run as a standalone evaluation: python -m src.evaluate
 """
 
-import json
 
 import matplotlib.pyplot as plt
 import mlflow

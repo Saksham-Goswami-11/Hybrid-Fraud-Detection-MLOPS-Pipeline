@@ -9,10 +9,10 @@ import numpy as np
 import pandas as pd
 
 from src.config import (
+    DATA_PROCESSED_DIR,
     ENGINEERED_FEATURES,
     TARGET_COL,
     TEST_DATA_FILE,
-    DATA_PROCESSED_DIR,
 )
 from src.utils import get_logger, set_global_seed
 

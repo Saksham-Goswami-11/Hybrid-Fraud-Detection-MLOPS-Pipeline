@@ -3,7 +3,6 @@ Tests for the evaluation module.
 """
 
 import numpy as np
-import pytest
 
 from src.evaluate import (
     compute_business_cost,

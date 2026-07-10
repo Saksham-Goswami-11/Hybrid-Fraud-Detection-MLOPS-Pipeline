@@ -52,7 +52,7 @@ def mock_model():
 def client(mock_model):
     """Create a FastAPI test client with a mock model loaded."""
     # Clear the cached model so it picks up our mock
-    from api.dependencies import load_model, load_explainer
+    from api.dependencies import load_explainer, load_model
 
     load_model.cache_clear()
     load_explainer.cache_clear()
@@ -149,14 +149,14 @@ class TestPredictEndpoint:
     def test_predict_velocity_over_limit_triggers_override(self, client, valid_transaction):
         """API should trigger rule override on the 4th consecutive request for a card."""
         valid_transaction["card_id"] = "test_card_limit_pytest"
-        
+
         # Hitting 3 times should be normal
         for _ in range(3):
             response = client.post("/predict", json=valid_transaction)
             assert response.status_code == 200
             data = response.json()
             assert data["rule_triggered"] is False
-            
+
         # 4th time should trigger velocity count alert override
         response = client.post("/predict", json=valid_transaction)
         assert response.status_code == 200
@@ -170,7 +170,7 @@ class TestPredictEndpoint:
         """API should trigger rule override immediately if single transaction is > $1000."""
         valid_transaction["card_id"] = "test_card_spend_pytest"
         valid_transaction["Amount"] = 1200.0
-        
+
         response = client.post("/predict", json=valid_transaction)
         assert response.status_code == 200
         data = response.json()

@@ -5,8 +5,8 @@ Defines request and response models with validation
 for transaction scoring and health check endpoints.
 """
 
+
 from pydantic import BaseModel, Field
-from typing import Optional
 
 
 class TransactionInput(BaseModel):

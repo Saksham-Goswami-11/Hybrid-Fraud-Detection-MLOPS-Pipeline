@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.data_prep import create_features, load_data, split_data, validate_data
+from src.data_prep import create_features, split_data, validate_data
 
 
 class TestValidateData:

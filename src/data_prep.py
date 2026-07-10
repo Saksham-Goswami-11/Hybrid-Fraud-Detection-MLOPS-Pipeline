@@ -7,19 +7,18 @@ train/test splitting of the credit card fraud dataset.
 Can be run as a module: python -m src.data_prep
 """
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 from src.config import (
-    RAW_DATA_FILE,
-    TRAIN_DATA_FILE,
-    TEST_DATA_FILE,
-    TARGET_COL,
-    TIME_COL,
-    AMOUNT_COL,
-    PCA_FEATURES,
     ALL_FEATURES,
+    AMOUNT_COL,
+    RAW_DATA_FILE,
+    TARGET_COL,
+    TEST_DATA_FILE,
     TEST_SIZE,
+    TIME_COL,
+    TRAIN_DATA_FILE,
 )
 from src.utils import get_logger, set_global_seed
 

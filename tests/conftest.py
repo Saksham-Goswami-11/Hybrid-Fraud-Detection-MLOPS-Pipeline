@@ -5,9 +5,6 @@ Shared test fixtures for the Fraud Detection System.
 import numpy as np
 import pandas as pd
 import pytest
-from fastapi.testclient import TestClient
-
-from src.config import PCA_FEATURES
 
 
 @pytest.fixture
