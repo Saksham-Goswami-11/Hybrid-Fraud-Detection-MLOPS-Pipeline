@@ -168,12 +168,12 @@ async def predict(transaction: TransactionInput):
         rule_reasons.append("High Amount (> $300.00) with elevated ML risk (> 10.0%)")
         is_fraud = True
 
-    # Rule 2 & 3: Behavioral Velocity Checks (Disabled for now)
-    # v_triggered, v_reasons = check_velocity_and_record(transaction.card_id, transaction.Amount)
-    # if v_triggered:
-    #     rule_triggered = True
-    #     rule_reasons.extend(v_reasons)
-    #     is_fraud = True
+    # Rule 2 & 3: Behavioral Velocity Checks
+    v_triggered, v_reasons = check_velocity_and_record(transaction.card_id, transaction.Amount)
+    if v_triggered:
+        rule_triggered = True
+        rule_reasons.extend(v_reasons)
+        is_fraud = True
 
     # SHAP explanation
     shap_response = shap_values_to_api_response(
@@ -223,11 +223,11 @@ async def predict_batch(request: BatchPredictionRequest):
             rule_reasons.append("High Amount (> $300.00) with elevated ML risk (> 10.0%)")
             is_fraud = True
 
-        # v_triggered, v_reasons = check_velocity_and_record(transaction.card_id, transaction.Amount)
-        # if v_triggered:
-        #     rule_triggered = True
-        #     rule_reasons.extend(v_reasons)
-        #     is_fraud = True
+        v_triggered, v_reasons = check_velocity_and_record(transaction.card_id, transaction.Amount)
+        if v_triggered:
+            rule_triggered = True
+            rule_reasons.extend(v_reasons)
+            is_fraud = True
 
         if is_fraud:
             fraud_count += 1

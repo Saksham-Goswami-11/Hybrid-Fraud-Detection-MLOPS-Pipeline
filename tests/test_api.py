@@ -145,7 +145,6 @@ class TestPredictEndpoint:
         # Allow generous margin for test environments
         assert latency_ms < 2000, f"Prediction took {latency_ms:.0f}ms (limit: 2000ms)"
 
-    @pytest.mark.skip(reason="Velocity checks are disabled for now")
     def test_predict_velocity_over_limit_triggers_override(self, client, valid_transaction):
         """API should trigger rule override on the 4th consecutive request for a card."""
         valid_transaction["card_id"] = "test_card_limit_pytest"
@@ -165,7 +164,6 @@ class TestPredictEndpoint:
         assert data["is_fraud"] is True
         assert any("exceeded 3 transactions" in r for r in data["rule_reasons"])
 
-    @pytest.mark.skip(reason="Velocity checks are disabled for now")
     def test_predict_velocity_spend_limit_triggers_override(self, client, valid_transaction):
         """API should trigger rule override immediately if single transaction is > $1000."""
         valid_transaction["card_id"] = "test_card_spend_pytest"

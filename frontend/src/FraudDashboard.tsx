@@ -494,7 +494,6 @@ export default function FraudDashboard() {
                     required
                   />
                 </div>
-                {/* Behavioral Velocity UI components commented out for now:
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wider flex items-center gap-1">
                     <Sliders className="w-3.5 h-3.5 text-slate-500" /> Card ID (Track)
@@ -508,17 +507,14 @@ export default function FraudDashboard() {
                     required
                   />
                 </div>
-                */}
               </div>
 
-              {/* Tip for Velocity Check (Commented out for now)
               <div className="text-[10px] text-slate-400 bg-slate-950/40 border border-slate-800/50 rounded-lg p-2.5 leading-normal flex items-start gap-1.5 font-mono">
                 <span>💡</span>
                 <span>
                   <strong>Tip:</strong> Click the scoring button 4 times with the same Card ID in rapid succession to trigger the behavioral velocity limit rule.
                 </span>
               </div>
-              */}
 
               {/* PCA Latent Features Heading */}
               <div className="pt-2">

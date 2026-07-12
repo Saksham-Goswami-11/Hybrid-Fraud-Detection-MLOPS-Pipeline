@@ -86,7 +86,7 @@ With this level of class imbalance, accuracy is misleading. This project optimiz
 | Imbalance handling | imbalanced-learn (SMOTE, ADASYN) |
 | Modeling | scikit-learn, XGBoost, LightGBM |
 | Anomaly detection | Isolation Forest, Autoencoder (PyTorch) |
-| Hyperparameter tuning | Optuna |
+
 | Explainability | SHAP |
 | Experiment tracking | MLflow |
 | Data/model versioning | DVC |
@@ -151,7 +151,7 @@ The model's fraud probability is compared against a tunable threshold (default: 
 ### 2. Rule-Based Overrides
 Independent of the ML score, rules trigger manual review or step-up authentication for known high-risk patterns.
 *   **Rule 1: Escalation for high-amount transactions with moderate ML suspicion** (If amount > \$300.00 and ML fraud probability >= 10.0%, escalate to review).
-*   **Rule 2 & 3: Behavioral Velocity Checks** (If card receives > 3 transactions or spends > \$1,000 within a rolling 10-minute window, trigger velocity override). *Note: Currently disabled/commented out for research.*
+*   **Rule 2 & 3: Behavioral Velocity Checks** (If card receives > 3 transactions or spends > \$1,000 within a rolling 10-minute window, trigger velocity override).
 
 ### 3. Retraining on False Negatives
 Missed fraud cases are logged, reviewed, and used to retrain the model (`dvc repro`) with adjusted sample weights, so the model incrementally learns from what it previously missed.
@@ -253,7 +253,7 @@ pytest tests/
 
 ## Roadmap / Future Work
 
-- [ ] Enable/Enable-by-default the velocity-based rules and add geo-location coordinates
+- [ ] Add geo-location coordinates to the rule engine
 - [ ] Segment-specific thresholds (e.g., new accounts vs. established accounts)
 - [ ] Streamlit/React dashboard for live drift monitoring
 - [ ] A/B testing framework for comparing model versions in "shadow mode" before full rollout
