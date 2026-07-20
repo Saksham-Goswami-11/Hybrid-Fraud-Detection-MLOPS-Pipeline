@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Testing and Linting
+.pytest_cache/
+.ruff_cache/
+
 # Virtual environment
 venv/
 .venv/
@@ -27,6 +31,8 @@ env/
 models/*.pkl
 models/*.pt
 models/*.joblib
+models/best_threshold.json
+models/leaderboard.csv
 
 # MLflow
 mlruns/
@@ -54,6 +60,9 @@ htmlcov/
 
 # Monitoring reports
 monitoring/reports/
+
+# Plots and Visualizations
+plots/
 
 # OS
 Thumbs.db
